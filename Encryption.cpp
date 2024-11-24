@@ -45,7 +45,7 @@ int Encryption::Encrypt(BYTE* packet, BYTE* outData, int Length)
 	finalSendLength = (finalSendLength & 0x00FFFFF0) + 1;
 
 	typedef void(*encryptShell)(PVOID, PVOID);
-	encryptShell _encrypt = (encryptShell)&EncryptPacketFunction; //since our version in .asm file was having trouble we can just call it as a char* buffer with exact bytes and patch over key location
+	encryptShell _encrypt = (encryptShell)&EncryptPacketFunction; //since our version in .asm file was having trouble with a certain instruction compiling, we can just call it as a char* buffer with exact bytes and patch over key location
 	DWORD dwOldProt = 0;
 
 	if (!VirtualProtect(&EncryptPacketFunction, 1000, PAGE_EXECUTE_READWRITE, &dwOldProt))
@@ -59,8 +59,7 @@ int Encryption::Encrypt(BYTE* packet, BYTE* outData, int Length)
 	UINT64 KeyOffset = 0;
 
 	KeyOffset = (keyTableoffset - thisFunctionAddress); //hackish method of putting key from our file into encrypto func which is a byte array and unmanagable
-	KeyOffset -= 0x61;
-	KeyOffset -= 4;
+	KeyOffset -= 0x65;
 	memcpy((void*)(EncryptPacketFunction + 0x61), &KeyOffset, 4); //place offset to our key table into the 0x61st position of our byte* function
 
 	//EVERY PACKET FIRST ENCRYPTS 16 BYTES, THEN DOES AN EDGE CASE (+1), THEN ENCRYPTS THE REST OF IT IN A LOOP OF 16 BYTES EACH TIME, WITH EACH TIME CALLING EACH FUNCTION (2 FUNCTIONS)
@@ -69,7 +68,7 @@ int Encryption::Encrypt(BYTE* packet, BYTE* outData, int Length)
 	nOffset += 0x10;
 	byte bEdgeByte = packetWithHeader[15];
 
-	bEdgeByte -= packetWithHeader[12]; //weird
+	bEdgeByte -= packetWithHeader[12]; // this can of course be optimized but I originally made this code to mimic how the games assembler code does all transformations to the buffer
 	bEdgeByte -= packetWithHeader[9];
 	bEdgeByte -= packetWithHeader[6];
 	bEdgeByte -= packetWithHeader[3];
